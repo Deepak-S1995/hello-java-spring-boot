@@ -1,37 +1,39 @@
-// Based on:
-// https://raw.githubusercontent.com/redhat-cop/container-pipelines/master/basic-spring-boot/Jenkinsfile
-
-library identifier: "pipeline-library@v1.5",
-retriever: modernSCM(
-  [
-    $class: "GitSCMSource",
-    remote: "https://github.com/redhat-cop/pipeline-library.git"
-  ]
-)
-
-// The name you want to give your Spring Boot application
-// Each resource related to your app will be given this name
-appName = "hello-java-spring-boot"
-
 pipeline {
-    // Use the 'maven' Jenkins agent image which is provided with OpenShift 
-    agent { label "maven" }
-    stages {
-        stage("Checkout") {
-            steps {
-                checkout scm
-            }
-        }
-        stage("Docker Build") {
-            steps {
-                // This uploads your application's source code and performs a binary build in OpenShift
-                // This is a step defined in the shared library (see the top for the URL)
-                // (Or you could invoke this step using 'oc' commands!)
-                binaryBuild(buildConfigName: appName, buildFromPath: ".")
-            }
-        }
-
-        // You could extend the pipeline by tagging the image,
-        // or deploying it to a production environment, etc......
+    agent any
+    
+    environment {
+        DOCKER_IMAGE_NAME = "my-docker-image"
+        GIT_REPO_URL = "https://github.com/your-username/your-repo.git"
+        DOCKERFILE_PATH = "./Dockerfile"
     }
-}
+    
+    stages {
+        stage('Clone Repository') {
+            steps {
+                script {
+                    // Clone the Git repository
+                    git branch: 'master', url: GIT_REPO_URL
+                }
+            }
+        }
+        
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    // Build the Docker image
+                    docker.build(DOCKER_IMAGE_NAME, "-f ${DOCKERFILE_PATH} .")
+                }
+            }
+        }
+        
+        stage('Push Docker Image') {
+            steps {
+                script {
+                    // Push the Docker image to a Docker registry
+                    docker.withRegistry('https://registry.example.com', 'docker-registry-credentials') {
+                        docker.image(DOCKER_IMAGE_NAME).push('latest')
+                    }
+                }
+            }
+        }
+    }
