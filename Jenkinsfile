@@ -3,16 +3,25 @@ pipeline {
     
     environment {
         DOCKER_IMAGE_NAME = "my-docker-image"
-        GIT_REPO_URL = "https://github.com/your-username/your-repo.git"
+        GIT_REPO_URL = "https://github.com/Deepak-S1995/hello-java-spring-boot.git"
         DOCKERFILE_PATH = "./Dockerfile"
+        OPENJDK_VERSION = "11"
+        MAVEN_HOME = tool 'Maven'
     }
     
     stages {
         stage('Clone Repository') {
             steps {
                 script {
-                    // Clone the Git repository
                     git branch: 'master', url: GIT_REPO_URL
+                }
+            }
+        }
+        
+        stage('Build Application') {
+            steps {
+                script {
+                    sh "${MAVEN_HOME}/bin/mvn clean install"
                 }
             }
         }
@@ -20,19 +29,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    // Build the Docker image
-                    docker.build(DOCKER_IMAGE_NAME, "-f ${DOCKERFILE_PATH} .")
-                }
-            }
-        }
-        
-        stage('Push Docker Image') {
-            steps {
-                script {
-                    // Push the Docker image to a Docker registry
-                    docker.withRegistry('https://registry.example.com', 'docker-registry-credentials') {
-                        docker.image(DOCKER_IMAGE_NAME).push('latest')
-                    }
+                    docker.build("${DOCKER_IMAGE_NAME}:${OPENJDK_VERSION}", "-f ${DOCKERFILE_PATH} --build-arg OPENJDK_VERSION=${OPENJDK_VERSION} .")
                 }
             }
         }
